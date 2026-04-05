@@ -301,11 +301,11 @@ footer{
 // ── CONFIG — Auto-detect backend URL ──────────────────────────────────────────
 const API_BASE = (() => {
   const h = location.hostname;
-  // If opened directly as a file or on localhost, use localhost:4007
-  if (h === 'localhost' || h === '  10.182.67.161' || h === '') {
-    return `${location.protocol}//${h === '' ? 'localhost' : h}:4007`;
+  // localhost / file:// → use port 4007
+  if (h === 'localhost' || h === '127.0.0.1' || h === '') {
+    return `http://localhost:4007`;
   }
-  // On a real server/domain, the backend is served from the same host
+  // Railway / any real domain → same origin, no port needed
   return `${location.protocol}//${location.host}`;
 })();
 
