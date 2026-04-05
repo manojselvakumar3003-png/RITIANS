@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Live Tracking – Ritians Transport</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous"/>
+
+<!-- ⚠️  Replace YOUR_GOOGLE_MAPS_API_KEY below with your actual key -->
+<!-- Get a free key at: https://console.cloud.google.com/google/maps-apis -->
+
+<style>
+:root{
+  --bg:#060A14;--bg2:#0C1220;--bg3:#121C2E;--bg4:#1A2540;
+  --accent:#FF6B35;--accent2:#4ECDC4;--accent3:#FFE66D;
+  --blue:#3B82F6;--green:#22C55E;--red:#EF4444;--yellow:#FBBF24;
+  --text:#F0F4FF;--text2:#9BAAC8;--text3:#5A6A8A;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --glow-accent:rgba(255,107,53,0.25);--glow-teal:rgba(78,205,196,0.2);
+  --r:12px;--r2:20px;
+  --font-head:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;--font-mono:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;line-height:1.6;overflow-x:hidden;height:100%}
+
+/* ── NAVBAR ── */
+.nav{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 5vw;background:rgba(6,10,20,0.9);
+  backdrop-filter:blur(24px);border-bottom:1px solid var(--border);
+}
+.nav-brand{display:flex;align-items:center;gap:12px}
+.nav-logo{
+  width:38px;height:38px;border-radius:10px;
+  background:linear-gradient(135deg,var(--accent),#FF4500);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;color:#fff;box-shadow:0 0 16px var(--glow-accent);
+}
+.nav-title{font-family:var(--font-head);font-size:16px;font-weight:700}
+.nav-sub{font-size:10px;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase}
+.nav-right{display:flex;align-items:center;gap:10px}
+.back-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 14px;border-radius:99px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text2);font-family:var(--font-body);
+  font-size:12px;cursor:pointer;text-decoration:none;transition:all 0.15s;
+}
+.back-btn:hover{background:var(--bg4);color:var(--text)}
+.clock{font-family:var(--font-mono);font-size:12px;color:var(--text2);padding:6px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:99px}
+
+/* ── PAGE LAYOUT ── */
+.page{display:grid;grid-template-columns:360px 1fr;height:calc(100vh - 65px)}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  background:var(--bg2);border-right:1px solid var(--border);
+  overflow-y:auto;display:flex;flex-direction:column;
+}
+.sidebar-head{padding:20px;border-bottom:1px solid var(--border)}
+.sidebar-head h2{font-family:var(--font-head);font-size:17px;font-weight:700;margin-bottom:4px}
+.sidebar-head p{font-size:12px;color:var(--text3)}
+
+/* Search box */
+.search-area{padding:16px 20px;border-bottom:1px solid var(--border)}
+.search-inner{position:relative}
+.search-inner i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:12px}
+.search-inner input{
+  width:100%;padding:10px 12px 10px 32px;
+  background:var(--bg3);border:1px solid var(--border2);border-radius:99px;
+  color:var(--text);font-family:var(--font-body);font-size:13px;outline:none;
+  transition:border-color 0.15s;
+}
+.search-inner input:focus{border-color:var(--accent2)}
+
+/* Track button */
+.track-btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:10px;border-radius:99px;border:none;
+  margin-top:8px;font-family:var(--font-body);font-size:13px;font-weight:600;
+  cursor:pointer;transition:all 0.2s;
+  background:linear-gradient(135deg,var(--accent2),#0EA5E9);
+  color:#fff;box-shadow:0 8px 24px var(--glow-teal);
+}
+.track-btn:hover{transform:translateY(-1px);box-shadow:0 12px 28px var(--glow-teal)}
+.track-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+
+/* All vehicles list */
+.vehicles-section{padding:16px 20px;flex:1}
+.section-label{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);font-weight:600;margin-bottom:10px}
+.vehicle-item{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 12px;border-radius:var(--r);margin-bottom:6px;
+  background:var(--bg3);border:1px solid var(--border);cursor:pointer;
+  transition:all 0.15s;
+}
+.vehicle-item:hover{background:var(--bg4);border-color:var(--border2)}
+.vehicle-item.selected{background:rgba(78,205,196,0.1);border-color:var(--accent2)}
+.vehicle-icon{
+  width:36px;height:36px;border-radius:8px;
+  background:linear-gradient(135deg,var(--accent),#FF4500);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;color:#fff;flex-shrink:0;
+}
+.vehicle-icon.moving{background:linear-gradient(135deg,var(--green),#16A34A);animation:iconPulse 2s infinite}
+.vehicle-icon.stopped{background:var(--bg4)}
+@keyframes iconPulse{0%,100%{box-shadow:0 0 0 rgba(34,197,94,0.4)}50%{box-shadow:0 0 12px rgba(34,197,94,0.6)}}
+.vehicle-info{flex:1;min-width:0}
+.vehicle-name{font-family:var(--font-head);font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vehicle-meta{font-size:11px;color:var(--text3)}
+.vehicle-badge{
+  font-size:10px;padding:2px 7px;border-radius:99px;font-weight:500;flex-shrink:0;
+}
+.badge-moving{background:rgba(34,197,94,0.1);color:#4ADE80;border:1px solid rgba(34,197,94,0.2)}
+.badge-stopped{background:var(--bg4);color:var(--text3);border:1px solid var(--border)}
+.badge-stale{background:rgba(239,68,68,0.1);color:#F87171;border:1px solid rgba(239,68,68,0.2)}
+.no-vehicles{text-align:center;padding:32px 16px;color:var(--text3);font-size:13px}
+.no-vehicles i{font-size:28px;display:block;margin-bottom:10px;color:var(--accent)}
+
+/* ── INFO PANEL (shown when tracking) ── */
+.info-panel{
+  padding:16px 20px;border-top:1px solid var(--border);
+  background:var(--bg3);display:none;
+}
+.info-panel.visible{display:block}
+.info-title{font-family:var(--font-head);font-size:13px;font-weight:600;margin-bottom:10px}
+.info-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+.info-label{color:var(--text3)}
+.info-val{font-family:var(--font-mono);font-size:11px;color:var(--text2)}
+.info-val.green{color:var(--green)}
+.info-val.yellow{color:var(--yellow)}
+.info-val.red{color:var(--red)}
+.stop-track-btn{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  width:100%;padding:8px;border-radius:99px;margin-top:12px;
+  background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);
+  color:#F87171;font-family:var(--font-body);font-size:12px;cursor:pointer;
+  transition:all 0.15s;
+}
+.stop-track-btn:hover{background:rgba(239,68,68,0.2)}
+
+/* ── MAP AREA ── */
+.map-area{position:relative;background:var(--bg3)}
+#map{width:100%;height:100%}
+
+/* Map overlay (no vehicle selected) */
+.map-overlay{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;
+  background:radial-gradient(ellipse 60% 40% at 50% 50%,rgba(78,205,196,0.06),transparent);
+  pointer-events:none;
+}
+.map-overlay.hidden{display:none}
+.overlay-icon{font-size:48px;color:var(--accent2);margin-bottom:16px;opacity:0.6}
+.overlay-title{font-family:var(--font-head);font-size:18px;font-weight:700;margin-bottom:6px}
+.overlay-sub{font-size:13px;color:var(--text3);max-width:280px}
+
+/* Map controls */
+.map-controls{
+  position:absolute;top:16px;right:16px;
+  display:flex;flex-direction:column;gap:8px;z-index:5;
+}
+.map-ctrl-btn{
+  width:36px;height:36px;border-radius:var(--r);
+  background:var(--bg2);border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text2);cursor:pointer;font-size:13px;
+  transition:all 0.15s;box-shadow:0 4px 16px rgba(0,0,0,0.4);
+}
+.map-ctrl-btn:hover{background:var(--bg3);color:var(--text)}
+
+/* Update ticker */
+.update-ticker{
+  position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+  background:rgba(6,10,20,0.85);border:1px solid var(--border2);
+  border-radius:99px;padding:6px 14px;font-size:11px;color:var(--text2);
+  display:flex;align-items:center;gap:6px;backdrop-filter:blur(12px);
+  z-index:5;display:none;
+}
+.update-ticker.visible{display:flex}
+.tick-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:dotBlink 1s infinite}
+@keyframes dotBlink{0%,100%{opacity:1}50%{opacity:0.2}}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:20px;right:20px;z-index:200;
+  display:flex;align-items:center;gap:10px;
+  padding:10px 18px;border-radius:99px;font-size:13px;
+  background:var(--bg2);border:1px solid var(--border2);
+  box-shadow:0 16px 48px rgba(0,0,0,0.6);
+  animation:toastIn 0.2s ease;
+}
+.toast.hidden{display:none}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .page{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .sidebar{max-height:40vh;border-right:none;border-bottom:1px solid var(--border)}
+  .map-area{min-height:60vh}
+}
+
+/* ── Strip Google Maps InfoWindow default white shell ── */
+/* Without these, our dark popup renders inside a white card */
+.gm-style .gm-style-iw-c {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.gm-style .gm-style-iw-d {
+  overflow: hidden !important;
+  padding: 0 !important;
+}
+/* Hide the default close button (×) — our popup is click-to-open only */
+.gm-style .gm-style-iw-tc { display: none !important; }   /* tail/arrow */
+.gm-style .gm-ui-hover-effect { display: none !important; } /* × button */
+</style>
+<!-- Mobile responsive layer -->
+<link rel="stylesheet" href="mobile.css"/>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<header class="nav">
+  <div class="nav-brand">
+    <div class="nav-logo"><i class="fas fa-bus"></i></div>
+    <div>
+      <div class="nav-title">Live Tracking</div>
+      <div class="nav-sub">Ritians Transport — RIT Chennai</div>
+    </div>
+  </div>
+  <div class="nav-right">
+    <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Home</a>
+    <a href="driver.html" class="back-btn" style="background:rgba(251,191,36,0.1);border-color:rgba(251,191,36,0.3);color:#FDE68A"><i class="fas fa-location-arrow"></i> Driver Portal</a>
+    <div class="clock" id="clockEl">--:--:--</div>
+  </div>
+</header>
+
+<!-- MAIN LAYOUT -->
+<div class="page">
+
+  <!-- ── SIDEBAR ── -->
+  <div class="sidebar">
+    <div class="sidebar-head">
+      <h2><i class="fas fa-satellite-dish" style="color:var(--accent2);font-size:14px;margin-right:8px"></i>Vehicle Tracker</h2>
+      <p>Enter a route ID or pick from active vehicles below</p>
+    </div>
+
+    <div class="search-area">
+      <div class="search-inner">
+        <i class="fas fa-search"></i>
+        <input type="text" id="vehicleInput" placeholder="Enter route ID (e.g., R01, R05A)…" maxlength="10"/>
+      </div>
+      <button class="track-btn" id="trackBtn" onclick="trackVehicle()">
+        <i class="fas fa-location-crosshairs"></i> Track Vehicle
+      </button>
+    </div>
+
+    <div class="vehicles-section">
+      <div class="section-label">Active Vehicles <span id="activeCount" style="color:var(--accent2)">0</span></div>
+      <div id="vehicleList">
+        <div class="no-vehicles">
+          <i class="fas fa-bus-simple"></i>
+          <p>No active vehicles found.<br/>Waiting for drivers to share location.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info panel appears when a vehicle is selected -->
+    <div class="info-panel" id="infoPanel">
+      <div class="info-title" id="infoTitle">Bus Info</div>
+      <div class="info-row"><span class="info-label">Route</span><span class="info-val" id="infoRoute">—</span></div>
+      <div class="info-row"><span class="info-label">Status</span><span class="info-val" id="infoStatus">—</span></div>
+      <div class="info-row"><span class="info-label">Speed</span><span class="info-val" id="infoSpeed">—</span></div>
+      <div class="info-row"><span class="info-label">Coordinates</span><span class="info-val" id="infoCoords">—</span></div>
+      <div class="info-row"><span class="info-label">Last Updated</span><span class="info-val" id="infoTime">—</span></div>
+      <button class="stop-track-btn" onclick="stopTracking()">
+        <i class="fas fa-stop-circle"></i> Stop Tracking
+      </button>
+    </div>
+  </div>
+
+  <!-- ── MAP ── -->
+  <div class="map-area">
+    <div id="map"></div>
+
+    <!-- Overlay shown before any vehicle is selected -->
+    <div class="map-overlay" id="mapOverlay">
+      <div class="overlay-icon"><i class="fas fa-map-location-dot"></i></div>
+      <div class="overlay-title">Select a Vehicle to Track</div>
+      <div class="overlay-sub">Enter a route ID in the search box or tap an active vehicle from the list on the left.</div>
+    </div>
+
+    <!-- Map controls -->
+    <div class="map-controls">
+      <div class="map-ctrl-btn" onclick="centerOnVehicle()" title="Center on vehicle"><i class="fas fa-crosshairs"></i></div>
+      <div class="map-ctrl-btn" onclick="toggleSatellite()" title="Toggle satellite"><i class="fas fa-satellite"></i></div>
+    </div>
+
+    <!-- Auto-refresh ticker -->
+    <div class="update-ticker" id="updateTicker">
+      <span class="tick-dot"></span>
+      <span id="tickerText">Updating location…</span>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast hidden" id="toastEl">
+  <i class="fas fa-circle-check" id="toastIcon"></i>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+// Auto-detects backend URL — works on localhost AND on your real server/IP
+const API_BASE = (() => {
+  const h = location.hostname;
+  if (h === 'localhost' || h === '  10.182.67.161' || h === '') {
+    return `${location.protocol}//${h === '' ? 'localhost' : h}:4007`;
+  }
+  return `${location.protocol}//${location.host}`;
+})();
+const MAPS_API_KEY ='AIzaSyAjCI_cdiIGzAGDbRMEOpyXDsjIx9SOObI';
+const POLL_INTERVAL_MS = 4000; // How often to refresh tracked vehicle (ms)
+const LIST_REFRESH_MS  = 6000; // How often to refresh the all-vehicles list
+
+// ── State ──────────────────────────────────────────────────────────────────────
+let map = null;               // Google Maps instance
+let marker = null;            // Main tracked vehicle marker
+let markerInfoWindow = null;  // Info popup on marker
+let isSatellite = false;      // Map type toggle
+let activeVehicleId = null;   // Currently tracked vehicle
+let pollTimer = null;         // setInterval handle for position polling
+let listTimer = null;         // setInterval handle for vehicle list refresh
+let prevLatLng = null;        // Previous position (for smooth animation)
+let animFrame = null;         // requestAnimationFrame handle
+
+// Smooth marker animation state
+let animStart = null, animDuration = 1500;
+let fromLat, fromLng, toLat, toLng;
+
+// ── Google Maps Initialization ────────────────────────────────────────────────
+function initMap() {
+  // Dark-style map matching the site theme
+  const darkMapStyle = [
+    {elementType:'geometry',stylers:[{color:'#0C1220'}]},
+    {elementType:'labels.text.stroke',stylers:[{color:'#060A14'}]},
+    {elementType:'labels.text.fill',stylers:[{color:'#9BAAC8'}]},
+    {featureType:'road',elementType:'geometry',stylers:[{color:'#1A2540'}]},
+    {featureType:'road',elementType:'geometry.stroke',stylers:[{color:'#121C2E'}]},
+    {featureType:'road.highway',elementType:'geometry',stylers:[{color:'#243052'}]},
+    {featureType:'road.highway',elementType:'labels.text.fill',stylers:[{color:'#4ECDC4'}]},
+    {featureType:'water',elementType:'geometry',stylers:[{color:'#060A14'}]},
+    {featureType:'water',elementType:'labels.text.fill',stylers:[{color:'#3B82F6'}]},
+    {featureType:'poi',elementType:'geometry',stylers:[{color:'#0C1220'}]},
+    {featureType:'poi.park',elementType:'geometry',stylers:[{color:'#0A1428'}]},
+    {featureType:'transit',elementType:'geometry',stylers:[{color:'#1A2540'}]},
+  ];
+
+  map = new google.maps.Map(document.getElementById('map'), {
+    // Default center: RIT Chennai campus
+    center: { lat: 13.0400, lng: 80.0963 },
+    zoom: 13,
+    styles: darkMapStyle,
+    disableDefaultUI: true, // We have custom controls
+    zoomControl: true,
+    zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
+  });
+
+  // Start auto-refreshing the vehicle list
+  refreshVehicleList();
+  listTimer = setInterval(refreshVehicleList, LIST_REFRESH_MS);
+}
+
+// ── Track a Vehicle ───────────────────────────────────────────────────────────
+function trackVehicle(vehicleId) {
+  const id = vehicleId || document.getElementById('vehicleInput').value.trim().toUpperCase();
+  if (!id) { showToast('Enter a route ID first', 'error'); return; }
+
+  // Stop previous tracking
+  stopTracking(true);
+
+  activeVehicleId = id;
+  document.getElementById('vehicleInput').value = id;
+
+  // Immediate first fetch
+  fetchAndUpdateMarker(id);
+
+  // Poll every POLL_INTERVAL_MS
+  pollTimer = setInterval(() => fetchAndUpdateMarker(id), POLL_INTERVAL_MS);
+
+  // Show UI
+  document.getElementById('mapOverlay').classList.add('hidden');
+  document.getElementById('updateTicker').classList.add('visible');
+  document.getElementById('infoPanel').classList.add('visible');
+  showToast(`🚌 Tracking ${id}…`);
+}
+
+// ── Stop Tracking ─────────────────────────────────────────────────────────────
+function stopTracking(silent = false) {
+  if (pollTimer) clearInterval(pollTimer);
+  if (animFrame) cancelAnimationFrame(animFrame);
+  pollTimer = null; animFrame = null;
+  activeVehicleId = null; prevLatLng = null;
+
+  if (marker) { marker.setMap(null); marker = null; }
+  if (markerInfoWindow) { markerInfoWindow.close(); markerInfoWindow = null; }
+
+  document.getElementById('mapOverlay').classList.remove('hidden');
+  document.getElementById('updateTicker').classList.remove('visible');
+  document.getElementById('infoPanel').classList.remove('visible');
+  document.getElementById('vehicleInput').value = '';
+
+  // Deselect in list
+  document.querySelectorAll('.vehicle-item').forEach(el => el.classList.remove('selected'));
+
+  if (!silent) showToast('Tracking stopped');
+}
+
+// ── Fetch Latest Position and Move Marker ─────────────────────────────────────
+async function fetchAndUpdateMarker(vehicleId) {
+  // Guard: if Maps API failed to load, skip marker logic but still update sidebar
+  const mapsReady = typeof google !== 'undefined' && google.maps && map;
+
+  try {
+    const res = await fetch(`${API_BASE}/get-location/${vehicleId}`);
+    if (!res.ok) {
+      updateTicker('Vehicle not found or offline', true);
+      return;
+    }
+    const data = await res.json();
+    if (!data.success) { updateTicker('No data', true); return; }
+
+    const { lat, lng, speed, status, updatedAt, isStale } = data;
+
+    // ── Marker logic (only if Maps API loaded successfully) ─────────────────
+    if (mapsReady) {
+      const newLatLng = new google.maps.LatLng(lat, lng);
+
+      if (!marker) {
+        marker = new google.maps.Marker({
+          position: newLatLng,
+          map,
+          title: vehicleId,
+          icon: buildMarkerIcon(status),
+          optimized: false,
+          zIndex: 999,
+        });
+        markerInfoWindow = new google.maps.InfoWindow({ content: buildInfoContent(data) });
+        marker.addListener('click', () => markerInfoWindow.open(map, marker));
+        map.panTo(newLatLng);
+        map.setZoom(15);
+        prevLatLng = newLatLng;
+      } else {
+        if (prevLatLng && !prevLatLng.equals(newLatLng)) {
+          animateMarker(prevLatLng, newLatLng, status);
+        }
+        if (markerInfoWindow) markerInfoWindow.setContent(buildInfoContent(data));
+        prevLatLng = newLatLng;
+      }
+    }
+
+    // Update sidebar info panel
+    const ago = Math.round((Date.now() - updatedAt) / 1000);
+    document.getElementById('infoTitle').textContent = `Bus ${vehicleId}`;
+    document.getElementById('infoRoute').textContent = vehicleId;
+    document.getElementById('infoStatus').textContent = status || '—';
+    document.getElementById('infoStatus').className = `info-val ${status === 'Moving' ? 'green' : 'yellow'}`;
+    document.getElementById('infoSpeed').textContent = speed ? `${speed} km/h` : '0 km/h';
+    document.getElementById('infoCoords').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    document.getElementById('infoTime').textContent = isStale ? 'Offline (>60s)' : `${ago}s ago`;
+    document.getElementById('infoTime').className = `info-val ${isStale ? 'red' : 'green'}`;
+
+    // Update ticker
+    const nextIn = Math.round(POLL_INTERVAL_MS / 1000);
+    updateTicker(`${status === 'Moving' ? '🚌 Moving' : '🅿️ Stopped'} · Next update in ${nextIn}s`);
+    document.getElementById('tickerText').textContent =
+      `${isStale ? '⚠ Offline' : (status === 'Moving' ? '🚌 Moving' : '🅿️ Stopped')} · Refreshes every ${nextIn}s`;
+
+  } catch (err) {
+    updateTicker('Cannot reach server', true);
+    console.error(err);
+  }
+}
+
+// ── Smooth Marker Animation ───────────────────────────────────────────────────
+function animateMarker(from, to, status) {
+  if (animFrame) cancelAnimationFrame(animFrame);
+  fromLat = from.lat(); fromLng = from.lng();
+  toLat = to.lat();     toLng = to.lng();
+  animStart = null;
+
+  function step(ts) {
+    if (!animStart) animStart = ts;
+    const t = Math.min((ts - animStart) / animDuration, 1);
+    // Ease out cubic
+    const ease = 1 - Math.pow(1 - t, 3);
+    const lat = fromLat + (toLat - fromLat) * ease;
+    const lng = fromLng + (toLng - fromLng) * ease;
+    if (marker) {
+      marker.setPosition(new google.maps.LatLng(lat, lng));
+      marker.setIcon(buildMarkerIcon(status));
+    }
+    if (t < 1) animFrame = requestAnimationFrame(step);
+    else animFrame = null;
+  }
+  animFrame = requestAnimationFrame(step);
+}
+
+// ── Custom Marker SVG Icon ────────────────────────────────────────────────────
+function buildMarkerIcon(status) {
+  const color = status === 'Moving' ? '#22C55E' : '#FBBF24';
+  const svg = `
+    <svg width="44" height="54" viewBox="0 0 44 54" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="sh" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.5)"/>
+        </filter>
+      </defs>
+      <ellipse cx="22" cy="52" rx="10" ry="3" fill="rgba(0,0,0,0.3)"/>
+      <path d="M22 2 C10.95 2 2 10.95 2 22 C2 36 22 50 22 50 C22 50 42 36 42 22 C42 10.95 33.05 2 22 2Z"
+        fill="${color}" filter="url(#sh)"/>
+      <circle cx="22" cy="22" r="10" fill="rgba(6,10,20,0.7)"/>
+      <text x="22" y="27" font-family="Arial" font-size="13" text-anchor="middle" fill="${color}">🚌</text>
+    </svg>`;
+  return {
+    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+    scaledSize: new google.maps.Size(44, 54),
+    anchor: new google.maps.Point(22, 52),
+  };
+}
+
+// ── Info Window Content ───────────────────────────────────────────────────────
+function buildInfoContent(data) {
+  // Null-safe: updatedAt might be missing
+  const ago         = data.updatedAt ? Math.round((Date.now() - data.updatedAt) / 1000) : 0;
+  const status      = data.status || 'Unknown';
+  const isMoving    = status === 'Moving';
+  const statusColor = isMoving ? '#4ADE80' : '#FBBF24';
+  const statusBg    = isMoving ? 'rgba(34,197,94,0.15)'  : 'rgba(251,191,36,0.15)';
+  const statusBdr   = isMoving ? 'rgba(34,197,94,0.35)'  : 'rgba(251,191,36,0.35)';
+  const speedText   = (data.speed && data.speed > 0) ? `${data.speed} km/h` : '0 km/h';
+  const staleHtml   = data.isStale
+    ? `<div style="margin-top:6px;font-size:10px;font-weight:600;color:#F87171">
+         ⚠ Signal lost (&gt;60 s)
+       </div>`
+    : '';
+
+  return `
+    <div style="
+      font-family:'DM Sans',sans-serif;
+      background:#0C1220;
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius:10px;
+      padding:12px 14px;
+      min-width:190px;
+      box-shadow:0 8px 24px rgba(0,0,0,0.55);
+    ">
+      <div style="
+        font-family:'Syne',sans-serif;
+        font-weight:700;font-size:14px;
+        color:#F0F4FF;margin-bottom:9px;
+        letter-spacing:0.02em;
+      ">🚌 Bus ${data.vehicleId}</div>
+
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
+        <span style="
+          background:${statusBg};color:${statusColor};
+          font-size:11px;font-weight:600;
+          padding:2px 9px;border-radius:99px;
+          border:1px solid ${statusBdr};
+        ">${status}</span>
+        <span style="font-size:12px;color:#9BAAC8">${speedText}</span>
+      </div>
+
+      <div style="font-size:11px;color:#5A6A8A">
+        Updated ${ago}s ago
+      </div>
+      ${staleHtml}
+    </div>`;
+}
+
+// ── All Vehicles List ─────────────────────────────────────────────────────────
+async function refreshVehicleList() {
+  try {
+    const res = await fetch(`${API_BASE}/all-vehicles`);
+    const data = await res.json();
+    if (!data.success) return;
+
+    const { vehicles, count } = data;
+    document.getElementById('activeCount').textContent = count;
+
+    const container = document.getElementById('vehicleList');
+    if (!vehicles.length) {
+      container.innerHTML = `<div class="no-vehicles"><i class="fas fa-bus-simple"></i><p>No active vehicles found.<br/>Waiting for drivers to share location.</p></div>`;
+      return;
+    }
+
+    container.innerHTML = vehicles
+      .sort((a, b) => a.vehicleId.localeCompare(b.vehicleId))
+      .map(v => {
+        const ago = Math.round((Date.now() - v.updatedAt) / 1000);
+        const badgeCls = v.isStale ? 'badge-stale' : v.status === 'Moving' ? 'badge-moving' : 'badge-stopped';
+        const badgeTxt = v.isStale ? 'Offline' : v.status;
+        const iconCls = v.isStale ? '' : v.status === 'Moving' ? 'moving' : 'stopped';
+        const selected = v.vehicleId === activeVehicleId ? ' selected' : '';
+        return `
+          <div class="vehicle-item${selected}" onclick="trackVehicle('${v.vehicleId}')">
+            <div class="vehicle-icon ${iconCls}"><i class="fas fa-bus"></i></div>
+            <div class="vehicle-info">
+              <div class="vehicle-name">Bus ${v.vehicleId}</div>
+              <div class="vehicle-meta">${v.speed} km/h · ${ago}s ago</div>
+            </div>
+            <span class="vehicle-badge ${badgeCls}">${badgeTxt}</span>
+          </div>`;
+      }).join('');
+  } catch (_) {}
+}
+
+// ── Map Controls ──────────────────────────────────────────────────────────────
+function centerOnVehicle() {
+  if (!marker || !map) { showToast('No vehicle being tracked', 'error'); return; }
+  map.panTo(marker.getPosition());
+  map.setZoom(16);
+}
+
+function toggleSatellite() {
+  if (!map) return;
+  isSatellite = !isSatellite;
+  if (isSatellite) {
+    map.setMapTypeId('hybrid');
+  } else {
+    map.setMapTypeId('roadmap');
+    map.setOptions({ styles: darkMapStyle }); // re-apply dark style on way back
+  }
+}
+
+// ── Ticker ────────────────────────────────────────────────────────────────────
+function updateTicker(msg, warning = false) {
+  document.getElementById('tickerText').textContent = msg;
+  document.querySelector('.tick-dot').style.background = warning ? 'var(--red)' : 'var(--green)';
+}
+
+// ── Clock ──────────────────────────────────────────────────────────────────────
+setInterval(() => {
+  document.getElementById('clockEl').textContent =
+    new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}, 1000);
+
+// ── Enter key in input ────────────────────────────────────────────────────────
+document.getElementById('vehicleInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') trackVehicle();
+});
+
+// ── Toast ──────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type = 'success') {
+  const el = document.getElementById('toastEl');
+  const icon = document.getElementById('toastIcon');
+  document.getElementById('toastMsg').textContent = msg;
+  icon.style.color = type === 'error' ? 'var(--red)' : 'var(--green)';
+  icon.className = type === 'error' ? 'fas fa-circle-exclamation' : 'fas fa-circle-check';
+  el.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.add('hidden'), 3000);
+}
+
+// ── Load Google Maps API ───────────────────────────────────────────────────────
+// This approach loads the API dynamically so we can handle missing key gracefully
+window.MAPS_API_KEY = 'AIzaSyAjCI_cdiIGzAGDbRMEOpyXDsjIx9SOObI';
+(function loadMapsAPI() {
+  if (window.MAPS_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY') {
+    // No API key — show clear error on map area
+    document.getElementById('map').innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+        height:100%;text-align:center;padding:40px;gap:12px">
+        <i class="fas fa-triangle-exclamation" style="font-size:40px;color:#FF6B35"></i>
+        <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700">Google Maps API Key Missing</div>
+        <div style="font-size:13px;color:#9BAAC8;max-width:360px;line-height:1.7">
+          Open <code style="background:#1A2540;padding:2px 6px;border-radius:4px">tracking.html</code>
+          and replace <code style="background:#1A2540;padding:2px 6px;border-radius:4px">YOUR_GOOGLE_MAPS_API_KEY</code>
+          with your key from
+          <a href="https://console.cloud.google.com/google/maps-apis" target="_blank"
+            style="color:#4ECDC4">Google Cloud Console</a>.
+        </div>
+        <div style="font-size:11px;color:#5A6A8A;margin-top:4px">
+          The vehicle list and server API will still work — only the map requires a key.
+        </div>
+      </div>`;
+    // Still start vehicle list refresh
+    refreshVehicleList();
+    listTimer = setInterval(refreshVehicleList, LIST_REFRESH_MS);
+    return;
+  }
+
+  const script = document.createElement('script');
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${window.MAPS_API_KEY}&callback=initMap`;
+  script.async = true;
+  script.defer = true;
+  script.onerror = () => {
+    document.getElementById('map').innerHTML = '<div style="padding:40px;text-align:center;color:#F87171">Failed to load Google Maps. Check your API key and network.</div>';
+  };
+  document.head.appendChild(script);
+})();
+</script>
+<!-- Mobile view-mode system -->
+<script src="mobile.js"></script>
+</body>
+</html>
